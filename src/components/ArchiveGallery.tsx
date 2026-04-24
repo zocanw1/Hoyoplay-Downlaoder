@@ -37,7 +37,7 @@ function LazyMediaItem({ item, index, downloading, handleDownload }: { item: Med
     }, []);
 
     return (
-        <div ref={ref} className="glass-panel rounded-2xl overflow-hidden group flex flex-col animate-slide-up" style={{ animationDelay: `${0.1 + (index % 10) * 0.05}s` }}>
+        <div ref={ref} className="glass-panel rounded-2xl overflow-hidden group flex flex-col animate-slide-up transform-gpu" style={{ animationDelay: `${0.1 + (index % 10) * 0.05}s` }}>
             {inView ? (
                 <>
                     <div className="relative aspect-video bg-surface overflow-hidden">
@@ -78,7 +78,7 @@ function LazyMediaItem({ item, index, downloading, handleDownload }: { item: Med
                                 loading="lazy"
                             />
                         )}
-                        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-xs font-mono border border-white/10">
+                        <div className="absolute top-3 right-3 bg-black/80 px-2 py-1 rounded text-xs font-mono border border-white/10">
                             {item.date}
                         </div>
                     </div>
