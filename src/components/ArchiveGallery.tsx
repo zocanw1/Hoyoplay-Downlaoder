@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 
 type MediaItem = {
     game: string;
@@ -17,6 +17,101 @@ const GAMES = [
     { id: 'nap_global', name: 'Zenless Zone Zero' },
     { id: 'bh3_global', name: 'Honkai Impact 3rd' },
 ];
+
+function LazyMediaItem({ item, index, downloading, handleDownload }: { item: MediaItem, index: number, downloading: string | null, handleDownload: (item: MediaItem) => void }) {
+    const [inView, setInView] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setInView(true);
+                }
+            },
+            { rootMargin: '200px' }
+        );
+
+        if (ref.current) observer.observe(ref.current);
+        return () => observer.disconnect();
+    }, []);
+
+    return (
+        <div ref={ref} className="glass-panel rounded-2xl overflow-hidden group flex flex-col animate-slide-up" style={{ animationDelay: `${0.1 + (index % 10) * 0.05}s` }}>
+            {inView ? (
+                <>
+                    <div className="relative aspect-video bg-surface overflow-hidden">
+                        {item.type === 'video' ? (
+                            <video
+                                className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+                                muted
+                                loop
+                                playsInline
+                                preload="metadata"
+                                onMouseEnter={(e) => {
+                                    const playPromise = e.currentTarget.play();
+                                    if (playPromise !== undefined) {
+                                        playPromise.catch((error) => {
+                                            if (error.name !== 'AbortError' && error.name !== 'NotSupportedError') {
+                                                console.error("Video play error:", error);
+                                            }
+                                        });
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.pause();
+                                    if (e.currentTarget.readyState >= 1) {
+                                        e.currentTarget.currentTime = 0;
+                                    }
+                                }}
+                                onError={(e) => {
+                                    console.error("Video source error for:", item.url);
+                                }}
+                            >
+                                <source src={item.url} type="video/webm" />
+                            </video>
+                        ) : (
+                            <img
+                                src={item.url}
+                                alt={item.filename}
+                                className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                                loading="lazy"
+                            />
+                        )}
+                        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-xs font-mono border border-white/10">
+                            {item.date}
+                        </div>
+                    </div>
+                    <div className="p-5 flex flex-col grow justify-between gap-4">
+                        <div>
+                            <p className="text-sm text-text-secondary truncate" title={item.filename}>
+                                {item.filename}
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => handleDownload(item)}
+                            disabled={downloading === item.url}
+                            className="w-full py-2.5 bg-surface-hover hover:bg-primary border border-white/5 rounded-xl font-medium transition-all duration-300 glow-on-hover disabled:opacity-50 flex justify-center items-center gap-2"
+                        >
+                            {downloading === item.url ? (
+                                <span className="animate-pulse">Mengunduh...</span>
+                            ) : (
+                                <>
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    Unduh {item.type === 'video' ? 'Video' : 'Gambar'}
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </>
+            ) : (
+                <div className="w-full aspect-video bg-surface/50 animate-pulse"></div>
+            )}
+        </div>
+    );
+}
 
 export default function ArchiveGallery({ initialData }: { initialData: MediaItem[] }) {
     const [activeGame, setActiveGame] = useState<string>('hk4e_global');
@@ -107,80 +202,13 @@ export default function ArchiveGallery({ initialData }: { initialData: MediaItem
                         </div>
                     ) : (
                         displayedData.map((item, index) => (
-                            <div
+                            <LazyMediaItem 
                                 key={`${item.date}-${item.filename}`}
-                                className="glass-panel rounded-2xl overflow-hidden group flex flex-col animate-slide-up"
-                                style={{ animationDelay: `${0.1 + (index % 10) * 0.05}s` }}
-                            >
-                                <div className="relative aspect-video bg-surface overflow-hidden">
-                                    {item.type === 'video' ? (
-                                        <video
-                                            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300"
-                                            muted
-                                            loop
-                                            playsInline
-                                            preload="metadata"
-                                            onMouseEnter={(e) => {
-                                                const playPromise = e.currentTarget.play();
-                                                if (playPromise !== undefined) {
-                                                    playPromise.catch((error) => {
-                                                        // Ignore AbortError caused by pausing before play finishes
-                                                        if (error.name !== 'AbortError' && error.name !== 'NotSupportedError') {
-                                                            console.error("Video play error:", error);
-                                                        }
-                                                    });
-                                                }
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.pause();
-                                                // Only reset time if it's safe (loaded)
-                                                if (e.currentTarget.readyState >= 1) {
-                                                    e.currentTarget.currentTime = 0;
-                                                }
-                                            }}
-                                            onError={(e) => {
-                                                console.error("Video source error for:", item.url);
-                                                // Handle NotSupportedError by ignoring or logging
-                                            }}
-                                        >
-                                            <source src={item.url} type="video/webm" />
-                                        </video>
-                                    ) : (
-                                        <img
-                                            src={item.url}
-                                            alt={item.filename}
-                                            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
-                                            loading="lazy"
-                                        />
-                                    )}
-                                    <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-xs font-mono border border-white/10">
-                                        {item.date}
-                                    </div>
-                                </div>
-                                <div className="p-5 flex flex-col grow justify-between gap-4">
-                                    <div>
-                                        <p className="text-sm text-text-secondary truncate" title={item.filename}>
-                                            {item.filename}
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={() => handleDownload(item)}
-                                        disabled={downloading === item.url}
-                                        className="w-full py-2.5 bg-surface-hover hover:bg-primary border border-white/5 rounded-xl font-medium transition-all duration-300 glow-on-hover disabled:opacity-50 flex justify-center items-center gap-2"
-                                    >
-                                        {downloading === item.url ? (
-                                            <span className="animate-pulse">Mengunduh...</span>
-                                        ) : (
-                                            <>
-                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                                </svg>
-                                                Unduh {item.type === 'video' ? 'Video' : 'Gambar'}
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
+                                item={item}
+                                index={index}
+                                downloading={downloading}
+                                handleDownload={handleDownload}
+                            />
                         ))
                     )}
                 </div>
