@@ -110,13 +110,11 @@ export default function ArchiveGallery({ initialData }: { initialData: MediaItem
                                 <div className="relative aspect-video bg-surface overflow-hidden">
                                     {item.type === 'video' ? (
                                         <video
-                                            src={item.url}
                                             className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300"
                                             muted
                                             loop
                                             playsInline
                                             preload="metadata"
-                                            type="video/webm"
                                             onMouseEnter={(e) => {
                                                 const playPromise = e.currentTarget.play();
                                                 if (playPromise !== undefined) {
@@ -139,7 +137,9 @@ export default function ArchiveGallery({ initialData }: { initialData: MediaItem
                                                 console.error("Video source error for:", item.url);
                                                 // Handle NotSupportedError by ignoring or logging
                                             }}
-                                        />
+                                        >
+                                            <source src={item.url} type="video/webm" />
+                                        </video>
                                     ) : (
                                         <img
                                             src={item.url}
