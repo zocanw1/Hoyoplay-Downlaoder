@@ -22,6 +22,7 @@ export default function ArchiveGallery({ initialData }: { initialData: MediaItem
     const [activeGame, setActiveGame] = useState<string>('hk4e_global');
     const [activeType, setActiveType] = useState<'all' | 'video' | 'image'>('all');
     const [downloading, setDownloading] = useState<string | null>(null);
+    const [visibleCount, setVisibleCount] = useState<number>(12);
 
     const filteredData = useMemo(() => {
         return initialData.filter(item => {
@@ -30,6 +31,10 @@ export default function ArchiveGallery({ initialData }: { initialData: MediaItem
             return matchGame && matchType;
         });
     }, [initialData, activeGame, activeType]);
+
+    const displayedData = useMemo(() => {
+        return filteredData.slice(0, visibleCount);
+    }, [filteredData, visibleCount]);
 
     const handleDownload = async (item: MediaItem) => {
         try {
@@ -69,7 +74,7 @@ export default function ArchiveGallery({ initialData }: { initialData: MediaItem
                     {GAMES.map((game) => (
                         <button
                             key={game.id}
-                            onClick={() => setActiveGame(game.id)}
+                            onClick={() => { setActiveGame(game.id); setVisibleCount(12); }}
                             className={`px-6 py-3 rounded-full text-sm font-medium transition-all duration-300 ${activeGame === game.id
                                     ? 'bg-primary text-white shadow-[0_0_15px_rgba(92,111,255,0.4)]'
                                     : 'glass-panel text-text-secondary hover:text-white hover:bg-surface-hover'
@@ -85,7 +90,7 @@ export default function ArchiveGallery({ initialData }: { initialData: MediaItem
                     {(['all', 'video', 'image'] as const).map(type => (
                         <button
                             key={type}
-                            onClick={() => setActiveType(type)}
+                            onClick={() => { setActiveType(type); setVisibleCount(12); }}
                             className={`px-4 py-2 rounded-lg text-sm transition-colors ${activeType === type ? 'bg-surface-hover text-primary border border-primary/50' : 'text-text-secondary glass-panel hover:bg-surface-hover'
                                 }`}
                         >
@@ -96,12 +101,12 @@ export default function ArchiveGallery({ initialData }: { initialData: MediaItem
 
                 {/* Gallery Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredData.length === 0 ? (
+                    {displayedData.length === 0 ? (
                         <div className="col-span-full text-center py-20 text-text-secondary glass-panel rounded-2xl">
                             <p className="text-xl">Tidak ada media yang ditemukan.</p>
                         </div>
                     ) : (
-                        filteredData.map((item, index) => (
+                        displayedData.map((item, index) => (
                             <div
                                 key={`${item.date}-${item.filename}`}
                                 className="glass-panel rounded-2xl overflow-hidden group flex flex-col animate-slide-up"
@@ -179,6 +184,20 @@ export default function ArchiveGallery({ initialData }: { initialData: MediaItem
                         ))
                     )}
                 </div>
+
+                {visibleCount < filteredData.length && (
+                    <div className="mt-12 flex justify-center animate-fade-in">
+                        <button
+                            onClick={() => setVisibleCount(prev => prev + 12)}
+                            className="px-8 py-3 bg-surface-hover hover:bg-primary border border-primary/30 hover:border-primary rounded-xl font-semibold transition-all duration-300 shadow-[0_0_10px_rgba(92,111,255,0.2)] hover:shadow-[0_0_20px_rgba(92,111,255,0.5)] flex items-center gap-2"
+                        >
+                            <span>Muat Lebih Banyak</span>
+                            <svg className="w-5 h-5 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                    </div>
+                )}
 
                 <footer className="mt-20 pt-8 border-t border-white/10 text-center text-text-secondary text-sm animate-fade-in pb-8">
                     <p className="mb-2">
